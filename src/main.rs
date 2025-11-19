@@ -136,17 +136,9 @@ fn load_todo_list(path: &str) -> TodoList {
 }
 
 fn save_todo_list(path: &str, list: &TodoList) -> Result<(), TodoError> {
-    match serde_json::to_string_pretty(list) {
-        Ok(json) => match std::fs::write(path, json) {
-            Ok(_) => Ok(()),
-            Err(_) => Err(TodoError::SaveError),
-        },
-        Err(_) => Err(TodoError::SaveError),
-    }
-    // match std::fs::write(path, serde_json::to_string_pretty(list)) {
-    //      Ok(_) => todo!(),
-    //      Err(_) => todo!(),
-    //  }
+    let json = serde_json::to_string_pretty(list).map_err(|_| TodoError::SaveError)?;
+    std::fs::write(path, json).map_err(|_| TodoError::SaveError)?;
+    Ok(())
 }
 
 #[test]
