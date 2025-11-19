@@ -59,6 +59,13 @@ enum Command {
 enum TodoError {
     CommandError,
     TaskNotFound,
+    InvalidId,
+}
+
+impl From<std::num::ParseIntError> for TodoError {
+    fn from(_: std::num::ParseIntError) -> Self {
+        TodoError::InvalidId
+    }
 }
 
 fn main() -> Result<(), TodoError> {
@@ -82,6 +89,7 @@ fn run(cmd: Command, todo_list: &mut TodoList) -> Result<(), TodoError> {
             Ok(())
         }
         Command::Done { id } => {
+            // TODO:return result, let main deal with(?)
             println!("Marking {id} as done...");
             match todo_list.mark_done(id) {
                 Ok(_) => println!("Task id {} marked as done!", id),
@@ -106,10 +114,7 @@ fn parse_command(args: Vec<String>) -> Result<Command, TodoError> {
             Ok(Command::Add { text })
         }
         "done" => {
-            let id = args_iter.next().ok_or(TodoError::CommandError)?;
-            // TODO: change .unwrap()
-            let id: u32 = id.parse().unwrap();
-
+            let id: u32 = args_iter.next().ok_or(TodoError::CommandError)?.parse()?;
             Ok(Command::Done { id })
         }
         "list" => Ok(Command::List),
@@ -148,6 +153,7 @@ fn test_mark_done() -> Result<(), TodoError> {
     let mut task_list: TodoList = Default::default();
     run(cmd, &mut task_list)?;
     let res = task_list.mark_done(1)?;
+    assert_eq!(res.id, 1);
     assert!(res.done);
     Ok(())
 }
