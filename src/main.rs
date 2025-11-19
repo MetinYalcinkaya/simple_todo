@@ -5,19 +5,23 @@ struct Task {
     done: bool,
 }
 
-#[derive(Default)]
 struct TodoList {
     tasks: Vec<Task>,
     next_id: u32,
 }
 
+impl Default for TodoList {
+    fn default() -> Self {
+        Self {
+            tasks: Default::default(),
+            next_id: 1,
+        }
+    }
+}
+
 impl TodoList {
     fn add(&mut self, text: String) -> &Task {
-        let id = if self.tasks.is_empty() {
-            1
-        } else {
-            self.next_id
-        };
+        let id = self.next_id;
         self.tasks.push(Task {
             id,
             text,
@@ -34,12 +38,11 @@ impl TodoList {
     }
 
     fn mark_done(&mut self, id: u32) -> Result<&Task, TodoError> {
-        match self.tasks.get_mut(id as usize) {
-            Some(t) => {
-                t.done = true;
-                Ok(t)
-            }
-            None => Err(TodoError::TaskNotFound),
+        if let Some(task) = self.tasks.iter_mut().find(|t| t.id == id) {
+            task.done = true;
+            Ok(task)
+        } else {
+            Err(TodoError::TaskNotFound)
         }
     }
 }
@@ -84,7 +87,7 @@ fn run(cmd: Command, todo_list: &mut TodoList) -> Result<(), TodoError> {
                 Ok(_) => println!("Task id {} marked as done!", id),
                 Err(_) => println!("Task id {} not found", id),
             }
-            todo!("command 'done' not implemented");
+            Ok(())
         }
         Command::Help => {
             println!("Available commands: Add, List, Help");
@@ -104,6 +107,7 @@ fn parse_command(args: Vec<String>) -> Result<Command, TodoError> {
         }
         "done" => {
             let id = args_iter.next().ok_or(TodoError::CommandError)?;
+            // TODO: change .unwrap()
             let id: u32 = id.parse().unwrap();
 
             Ok(Command::Done { id })
@@ -143,7 +147,7 @@ fn test_mark_done() -> Result<(), TodoError> {
     let cmd = parse_command(args)?;
     let mut task_list: TodoList = Default::default();
     run(cmd, &mut task_list)?;
-    let res = task_list.mark_done(0)?;
+    let res = task_list.mark_done(1)?;
     assert!(res.done);
     Ok(())
 }
