@@ -65,6 +65,7 @@ enum TodoError {
     CommandError,
     TaskNotFound,
     InvalidId,
+    SaveError,
 }
 
 impl From<std::num::ParseIntError> for TodoError {
@@ -81,7 +82,7 @@ fn main() -> Result<(), TodoError> {
     let mut task_list: TodoList = load_todo_list(PATH);
     run(cmd, &mut task_list)?;
     // save
-    let _ = save_todo_list(PATH, &task_list);
+    save_todo_list(PATH, &task_list)?;
     Ok(())
 }
 
@@ -92,17 +93,13 @@ fn run(cmd: Command, todo_list: &mut TodoList) -> Result<(), TodoError> {
             Ok(())
         }
         Command::List => {
-            println!("Printing tasks...");
+            println!("Tasks:");
             todo_list.print_list();
             Ok(())
         }
         Command::Done { id } => {
-            // TODO:return result, let main deal with(?)
             println!("Marking {id} as done...");
-            match todo_list.mark_done(id) {
-                Ok(_) => println!("Task id {} marked as done!", id),
-                Err(_) => println!("Task id {} not found", id),
-            }
+            todo_list.mark_done(id)?;
             Ok(())
         }
         Command::Help => {
@@ -138,13 +135,13 @@ fn load_todo_list(path: &str) -> TodoList {
     }
 }
 
-fn save_todo_list(path: &str, list: &TodoList) -> Result<(), std::io::Error> {
+fn save_todo_list(path: &str, list: &TodoList) -> Result<(), TodoError> {
     match serde_json::to_string_pretty(list) {
         Ok(json) => match std::fs::write(path, json) {
             Ok(_) => Ok(()),
-            Err(err) => Err(err),
+            Err(_) => Err(TodoError::SaveError),
         },
-        Err(_) => Err(std::io::Error::last_os_error()),
+        Err(_) => Err(TodoError::SaveError),
     }
     // match std::fs::write(path, serde_json::to_string_pretty(list)) {
     //      Ok(_) => todo!(),
