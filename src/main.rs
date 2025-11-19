@@ -1,10 +1,15 @@
-#[derive(Default, Clone)]
+use std::fs;
+
+use serde::{Deserialize, Serialize};
+
+#[derive(Default, Clone, Deserialize, Serialize)]
 struct Task {
     id: u32,
     text: String,
     done: bool,
 }
 
+#[derive(Deserialize, Serialize)]
 struct TodoList {
     tasks: Vec<Task>,
     next_id: u32,
@@ -68,12 +73,15 @@ impl From<std::num::ParseIntError> for TodoError {
     }
 }
 
+const PATH: &str = "src/todo.json";
+
 fn main() -> Result<(), TodoError> {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let cmd: Command = parse_command(args)?;
-    let mut task_list: TodoList = Default::default();
+    let mut task_list: TodoList = load_todo_list(PATH);
     run(cmd, &mut task_list)?;
-    // println!("{:?}", cmd);
+    // save
+    let _ = save_todo_list(PATH, &task_list);
     Ok(())
 }
 
@@ -123,6 +131,27 @@ fn parse_command(args: Vec<String>) -> Result<Command, TodoError> {
     }
 }
 
+fn load_todo_list(path: &str) -> TodoList {
+    match fs::read_to_string(path) {
+        Ok(contents) => serde_json::from_str::<TodoList>(&contents).unwrap_or_default(),
+        Err(_) => TodoList::default(),
+    }
+}
+
+fn save_todo_list(path: &str, list: &TodoList) -> Result<(), std::io::Error> {
+    match serde_json::to_string_pretty(list) {
+        Ok(json) => match std::fs::write(path, json) {
+            Ok(_) => Ok(()),
+            Err(err) => Err(err),
+        },
+        Err(_) => Err(std::io::Error::last_os_error()),
+    }
+    // match std::fs::write(path, serde_json::to_string_pretty(list)) {
+    //      Ok(_) => todo!(),
+    //      Err(_) => todo!(),
+    //  }
+}
+
 #[test]
 fn test_cmd_parsing() -> Result<(), TodoError> {
     let args: Vec<String> = vec![String::from("add"), String::from("hello there")];
@@ -155,5 +184,26 @@ fn test_mark_done() -> Result<(), TodoError> {
     let res = task_list.mark_done(1)?;
     assert_eq!(res.id, 1);
     assert!(res.done);
+    Ok(())
+}
+
+#[test]
+fn test_load_todo() {
+    let list = load_todo_list("tests/data/test.json");
+    assert_eq!(3, list.tasks.len());
+}
+
+#[test]
+fn test_save_todo() -> Result<(), TodoError> {
+    let args: Vec<String> = vec![String::from("add"), String::from("helle there")];
+    let cmd = parse_command(args)?;
+    let mut task_list: TodoList = Default::default();
+    let path = "tests/data/save_test.json";
+    run(cmd, &mut task_list)?;
+    let _ = save_todo_list(path, &task_list);
+    let saved = load_todo_list(path);
+    assert_eq!(1, saved.tasks.len());
+    // cleanup
+    let _ = fs::remove_file(path);
     Ok(())
 }
