@@ -95,19 +95,37 @@ impl From<std::num::ParseIntError> for TodoError {
     }
 }
 
+impl std::fmt::Display for TodoError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            TodoError::CommandError => write!(f, "invalid command or arguments"),
+            TodoError::TaskNotFound => write!(f, "task with that id was not found"),
+            TodoError::InvalidId => write!(f, "task id must be a positive integer"),
+            TodoError::SaveError => write!(f, "failed to save todo list"),
+        }
+    }
+}
+
 const PATH: &str = "src/todo.json";
 
-fn main() -> Result<(), TodoError> {
+fn main() {
+    if let Err(e) = run_todo() {
+        eprintln!("Error: {}", e);
+        std::process::exit(1);
+    }
+}
+
+fn run_todo() -> Result<(), TodoError> {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let cmd: Command = parse_command(args)?;
     let mut task_list: TodoList = load_todo_list(PATH);
-    run(cmd, &mut task_list)?;
+    execute_command(cmd, &mut task_list)?;
     // save
     save_todo_list(PATH, &task_list)?;
     Ok(())
 }
 
-fn run(cmd: Command, todo_list: &mut TodoList) -> Result<(), TodoError> {
+fn execute_command(cmd: Command, todo_list: &mut TodoList) -> Result<(), TodoError> {
     match cmd {
         Command::Add { text } => {
             todo_list.add(text);
@@ -146,6 +164,7 @@ fn parse_command(args: Vec<String>) -> Result<Command, TodoError> {
 
     match sub.as_str() {
         "add" => {
+            // TODO: check for quotation marks?
             let text = args_iter.next().ok_or(TodoError::CommandError)?;
             Ok(Command::Add { text })
         }
@@ -191,8 +210,8 @@ fn test_add() -> Result<(), TodoError> {
     let cmd1 = parse_command(args1)?;
     let cmd2 = parse_command(args2)?;
     let mut task_list: TodoList = Default::default();
-    run(cmd1, &mut task_list)?;
-    run(cmd2, &mut task_list)?;
+    execute_command(cmd1, &mut task_list)?;
+    execute_command(cmd2, &mut task_list)?;
     assert_eq!(task_list.tasks.len(), 2);
     Ok(())
 }
@@ -202,7 +221,7 @@ fn test_mark_done() -> Result<(), TodoError> {
     let args: Vec<String> = vec![String::from("add"), String::from("hello there")];
     let cmd = parse_command(args)?;
     let mut task_list: TodoList = Default::default();
-    run(cmd, &mut task_list)?;
+    execute_command(cmd, &mut task_list)?;
     let res = task_list.mark_done(1)?;
     assert_eq!(res.id, 1);
     assert!(res.done);
@@ -221,7 +240,7 @@ fn test_save_todo() -> Result<(), TodoError> {
     let cmd = parse_command(args)?;
     let mut task_list: TodoList = Default::default();
     let path = "tests/data/save_test.json";
-    run(cmd, &mut task_list)?;
+    execute_command(cmd, &mut task_list)?;
     let _ = save_todo_list(path, &task_list);
     let saved = load_todo_list(path);
     assert_eq!(1, saved.tasks.len());
@@ -237,8 +256,8 @@ fn test_print_todo_and_done() -> Result<(), TodoError> {
     let cmd1 = parse_command(args1)?;
     let cmd2 = parse_command(args2)?;
     let mut task_list: TodoList = Default::default();
-    run(cmd1, &mut task_list)?;
-    run(cmd2, &mut task_list)?;
+    execute_command(cmd1, &mut task_list)?;
+    execute_command(cmd2, &mut task_list)?;
     // TODO: test on stdout instead of like this
     let _ = task_list.mark_done(2)?;
 
