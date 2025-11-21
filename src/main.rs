@@ -9,6 +9,13 @@ struct Task {
     done: bool,
 }
 
+impl std::fmt::Display for Task {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let status = if self.done { "[x]" } else { "[ ]" };
+        write!(f, "{status} {}: {}", self.id, self.text)
+    }
+}
+
 #[derive(Deserialize, Serialize)]
 struct TodoList {
     tasks: Vec<Task>,
@@ -38,7 +45,7 @@ impl TodoList {
 
     fn print_list(&self) {
         for task in &self.tasks {
-            println!("{}: {} -- Done: {}", task.id, task.text, task.done);
+            println!("{task}");
         }
     }
 
