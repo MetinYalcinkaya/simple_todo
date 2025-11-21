@@ -57,12 +57,26 @@ impl TodoList {
             Err(TodoError::TaskNotFound)
         }
     }
+
+    fn print_done(&self) {
+        for task in self.tasks.iter().filter(|t| t.done) {
+            println!("{task}");
+        }
+    }
+
+    fn print_todo(&self) {
+        for task in self.tasks.iter().filter(|t| !t.done) {
+            println!("{task}");
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Clone)]
 enum Command {
     Add { text: String },
     List,
+    ListDone,
+    ListTodo,
     Done { id: u32 },
     Help,
 }
@@ -104,6 +118,16 @@ fn run(cmd: Command, todo_list: &mut TodoList) -> Result<(), TodoError> {
             todo_list.print_list();
             Ok(())
         }
+        Command::ListDone => {
+            println!("Tasks Done:");
+            todo_list.print_done();
+            Ok(())
+        }
+        Command::ListTodo => {
+            println!("Tasks Todo:");
+            todo_list.print_todo();
+            Ok(())
+        }
         Command::Done { id } => {
             println!("Marking {id} as done...");
             todo_list.mark_done(id)?;
@@ -130,6 +154,8 @@ fn parse_command(args: Vec<String>) -> Result<Command, TodoError> {
             Ok(Command::Done { id })
         }
         "list" => Ok(Command::List),
+        "list-done" => Ok(Command::ListDone),
+        "list-todo" => Ok(Command::ListTodo),
         "help" => Ok(Command::Help),
         _ => Err(TodoError::CommandError),
     }
@@ -201,5 +227,22 @@ fn test_save_todo() -> Result<(), TodoError> {
     assert_eq!(1, saved.tasks.len());
     // cleanup
     let _ = fs::remove_file(path);
+    Ok(())
+}
+
+#[test]
+fn test_print_todo_and_done() -> Result<(), TodoError> {
+    let args1: Vec<String> = vec![String::from("add"), String::from("hello there")];
+    let args2: Vec<String> = vec![String::from("add"), String::from("goodbye there")];
+    let cmd1 = parse_command(args1)?;
+    let cmd2 = parse_command(args2)?;
+    let mut task_list: TodoList = Default::default();
+    run(cmd1, &mut task_list)?;
+    run(cmd2, &mut task_list)?;
+    // TODO: test on stdout instead of like this
+    let _ = task_list.mark_done(2)?;
+
+    assert_eq!(1, task_list.tasks.iter().filter(|t| t.done).count());
+    assert_eq!(1, task_list.tasks.iter().filter(|t| !t.done).count());
     Ok(())
 }
