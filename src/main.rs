@@ -83,7 +83,8 @@ enum Command {
 
 #[derive(Debug)]
 enum TodoError {
-    CommandError,
+    UnknownCommand,
+    MissingArgument,
     TaskNotFound,
     InvalidId,
     SaveError,
@@ -98,7 +99,8 @@ impl From<std::num::ParseIntError> for TodoError {
 impl std::fmt::Display for TodoError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            TodoError::CommandError => write!(f, "invalid command or arguments"),
+            TodoError::UnknownCommand => write!(f, "invalid command"),
+            TodoError::MissingArgument => write!(f, "invalid arguments"),
             TodoError::TaskNotFound => write!(f, "task with that id was not found"),
             TodoError::InvalidId => write!(f, "task id must be a positive integer"),
             TodoError::SaveError => write!(f, "failed to save todo list"),
@@ -160,23 +162,26 @@ fn execute_command(cmd: Command, todo_list: &mut TodoList) -> Result<(), TodoErr
 
 fn parse_command(args: Vec<String>) -> Result<Command, TodoError> {
     let mut args_iter = args.into_iter();
-    let sub = args_iter.next().ok_or(TodoError::CommandError)?;
+    let sub = args_iter.next().ok_or(TodoError::UnknownCommand)?;
 
     match sub.as_str() {
         "add" => {
             // TODO: check for quotation marks?
-            let text = args_iter.next().ok_or(TodoError::CommandError)?;
+            let text = args_iter.next().ok_or(TodoError::MissingArgument)?;
             Ok(Command::Add { text })
         }
         "done" => {
-            let id: u32 = args_iter.next().ok_or(TodoError::CommandError)?.parse()?;
+            let id: u32 = args_iter
+                .next()
+                .ok_or(TodoError::MissingArgument)?
+                .parse()?;
             Ok(Command::Done { id })
         }
         "list" => Ok(Command::List),
         "list-done" => Ok(Command::ListDone),
         "list-todo" => Ok(Command::ListTodo),
         "help" => Ok(Command::Help),
-        _ => Err(TodoError::CommandError),
+        _ => Err(TodoError::UnknownCommand),
     }
 }
 
