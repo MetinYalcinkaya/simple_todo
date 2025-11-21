@@ -152,7 +152,7 @@ fn execute_command(cmd: Command, todo_list: &mut TodoList) -> Result<(), TodoErr
             Ok(())
         }
         Command::Help => {
-            println!("Available commands: Add, List, Help");
+            println!("Available commands: add, list, list-done, list-todo, done, help");
             Ok(())
         }
     }
