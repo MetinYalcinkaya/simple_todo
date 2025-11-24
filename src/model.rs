@@ -126,9 +126,7 @@ impl std::str::FromStr for Priority {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::cli::Command;
-    use crate::execute_command;
-    use crate::model::Priority;
+    use crate::cli::{Command, execute_command};
 
     #[test]
     fn test_priority_counts() -> Result<(), TodoError> {
