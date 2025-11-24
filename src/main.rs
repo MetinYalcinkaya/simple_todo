@@ -1,10 +1,6 @@
-mod cli;
-mod model;
-mod persistence;
-
-use crate::cli::{Command, TodoError, execute_command, parse_command};
-use crate::model::TodoList;
-use crate::persistence::{PATH, load_todo_list, save_todo_list};
+use todo::cli::{Command, TodoError, execute_command, parse_command};
+use todo::model::TodoList;
+use todo::persistence::{PATH, load_todo_list, save_todo_list};
 
 fn main() {
     if let Err(e) = run_todo() {
