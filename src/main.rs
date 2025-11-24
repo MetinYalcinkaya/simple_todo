@@ -7,12 +7,13 @@ struct Task {
     id: u32,
     text: String,
     done: bool,
+    priority: Priority,
 }
 
 impl std::fmt::Display for Task {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let status = if self.done { "[x]" } else { "[ ]" };
-        write!(f, "{status} {}: {}", self.id, self.text)
+        write!(f, "{status} {} {}: {}", self.priority, self.id, self.text)
     }
 }
 
@@ -38,6 +39,7 @@ impl TodoList {
             id,
             text,
             done: false,
+            priority: Priority::Low,
         });
         self.next_id = id + 1;
         self.tasks.last().unwrap()
@@ -69,6 +71,21 @@ impl TodoList {
             println!("{task}");
         }
     }
+
+    fn print_by_priority(&self, priority: Priority) {
+        for task in self.tasks.iter().filter(|t| t.priority == priority) {
+            println!("{task}");
+        }
+    }
+
+    fn set_priority(&mut self, id: u32, priority: Priority) -> Result<&Task, TodoError> {
+        if let Some(task) = self.tasks.iter_mut().find(|t| t.id == id) {
+            task.priority = priority;
+            Ok(task)
+        } else {
+            Err(TodoError::TaskNotFound)
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -77,7 +94,9 @@ enum Command {
     List,
     ListDone,
     ListTodo,
+    ListByPriority { priority: Priority },
     Done { id: u32 },
+    SetPriority { id: u32, priority: Priority },
     Help,
 }
 
@@ -88,6 +107,7 @@ enum TodoError {
     TaskNotFound,
     InvalidId,
     SaveError,
+    PriorityError,
 }
 
 impl From<std::num::ParseIntError> for TodoError {
@@ -104,7 +124,46 @@ impl std::fmt::Display for TodoError {
             TodoError::TaskNotFound => write!(f, "task with that id was not found"),
             TodoError::InvalidId => write!(f, "task id must be a positive integer"),
             TodoError::SaveError => write!(f, "failed to save todo list"),
+            TodoError::PriorityError => write!(f, "unknown priority"),
         }
+    }
+}
+
+#[derive(Clone, Copy, Deserialize, Serialize, Debug, PartialEq)]
+enum Priority {
+    Low,
+    Medium,
+    High,
+}
+
+impl std::fmt::Display for Priority {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Priority::Low => write!(f, "(L)"),
+            Priority::Medium => write!(f, "(M)"),
+            Priority::High => write!(f, "(H)"),
+        }
+    }
+}
+
+impl std::str::FromStr for Priority {
+    type Err = TodoError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if s.eq_ignore_ascii_case("low") {
+            Ok(Priority::Low)
+        } else if s.eq_ignore_ascii_case("med") {
+            Ok(Priority::Medium)
+        } else if s.eq_ignore_ascii_case("high") {
+            Ok(Priority::High)
+        } else {
+            Err(TodoError::PriorityError)
+        }
+    }
+}
+
+impl Default for Priority {
+    fn default() -> Self {
+        Self::Low // defaults to low priority
     }
 }
 
@@ -130,7 +189,11 @@ fn run_todo() -> Result<(), TodoError> {
 fn execute_command(cmd: Command, todo_list: &mut TodoList) -> Result<(), TodoError> {
     match cmd {
         Command::Add { text } => {
-            todo_list.add(text);
+            let task = todo_list.add(text);
+            println!(
+                "Added {} as {} with {} priority",
+                task.text, task.id, task.priority
+            );
             Ok(())
         }
         Command::List => {
@@ -148,9 +211,20 @@ fn execute_command(cmd: Command, todo_list: &mut TodoList) -> Result<(), TodoErr
             todo_list.print_todo();
             Ok(())
         }
+        Command::ListByPriority { priority } => {
+            println!("Tasks with {} priority:", priority);
+            todo_list.print_by_priority(priority);
+            Ok(())
+        }
         Command::Done { id } => {
             println!("Marking {id} as done...");
-            todo_list.mark_done(id)?;
+            let task = todo_list.mark_done(id)?;
+            println!("Task {} marked as done.", task.id);
+            Ok(())
+        }
+        Command::SetPriority { id, priority } => {
+            let task = todo_list.set_priority(id, priority)?;
+            println!("Set task {} to {} priority", task.id, task.priority);
             Ok(())
         }
         Command::Help => {
@@ -170,6 +244,13 @@ fn parse_command(args: Vec<String>) -> Result<Command, TodoError> {
             let text = args_iter.next().ok_or(TodoError::MissingArgument)?;
             Ok(Command::Add { text })
         }
+        "list" => Ok(Command::List),
+        "list-done" => Ok(Command::ListDone),
+        "list-todo" => Ok(Command::ListTodo),
+        "list-prio" => {
+            let priority: Priority = args_iter.next().ok_or(TodoError::PriorityError)?.parse()?;
+            Ok(Command::ListByPriority { priority })
+        }
         "done" => {
             let id: u32 = args_iter
                 .next()
@@ -177,9 +258,11 @@ fn parse_command(args: Vec<String>) -> Result<Command, TodoError> {
                 .parse()?;
             Ok(Command::Done { id })
         }
-        "list" => Ok(Command::List),
-        "list-done" => Ok(Command::ListDone),
-        "list-todo" => Ok(Command::ListTodo),
+        "set-prio" => {
+            let id: u32 = args_iter.next().ok_or(TodoError::InvalidId)?.parse()?;
+            let priority: Priority = args_iter.next().ok_or(TodoError::PriorityError)?.parse()?;
+            Ok(Command::SetPriority { id, priority })
+        }
         "help" => Ok(Command::Help),
         _ => Err(TodoError::UnknownCommand),
     }
