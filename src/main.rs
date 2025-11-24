@@ -39,7 +39,7 @@ impl TodoList {
             id,
             text,
             done: false,
-            priority: Priority::Low,
+            priority: Priority::default(),
         });
         self.next_id = id + 1;
         self.tasks.last().unwrap()
@@ -129,8 +129,9 @@ impl std::fmt::Display for TodoError {
     }
 }
 
-#[derive(Clone, Copy, Deserialize, Serialize, Debug, PartialEq)]
+#[derive(Clone, Copy, Default, Deserialize, Serialize, Debug, PartialEq)]
 enum Priority {
+    #[default]
     Low,
     Medium,
     High,
@@ -158,12 +159,6 @@ impl std::str::FromStr for Priority {
         } else {
             Err(TodoError::PriorityError)
         }
-    }
-}
-
-impl Default for Priority {
-    fn default() -> Self {
-        Self::Low // defaults to low priority
     }
 }
 
@@ -228,7 +223,9 @@ fn execute_command(cmd: Command, todo_list: &mut TodoList) -> Result<(), TodoErr
             Ok(())
         }
         Command::Help => {
-            println!("Available commands: add, list, list-done, list-todo, done, help");
+            println!(
+                "Available commands: add, list, list-done, list-todo, list-prio, done, set-prio, help"
+            );
             Ok(())
         }
     }
@@ -351,5 +348,58 @@ fn test_print_todo_and_done() -> Result<(), TodoError> {
 
     assert_eq!(1, task_list.tasks.iter().filter(|t| t.done).count());
     assert_eq!(1, task_list.tasks.iter().filter(|t| !t.done).count());
+    Ok(())
+}
+
+#[test]
+fn test_priority() -> Result<(), TodoError> {
+    let commands = [
+        Command::Add {
+            text: String::from("eat mango"),
+        },
+        Command::Add {
+            text: String::from("walk dog"),
+        },
+        Command::Add {
+            text: String::from("pet ferris"),
+        },
+    ];
+
+    let mut task_list: TodoList = Default::default();
+
+    for command in commands {
+        execute_command(command, &mut task_list)?;
+    }
+
+    let _ = task_list.set_priority(2, Priority::Medium);
+    let _ = task_list.set_priority(3, Priority::High);
+
+    assert_eq!(
+        1,
+        task_list
+            .tasks
+            .iter()
+            .filter(|t| t.priority == Priority::Low)
+            .count()
+    );
+
+    assert_eq!(
+        1,
+        task_list
+            .tasks
+            .iter()
+            .filter(|t| t.priority == Priority::Medium)
+            .count()
+    );
+
+    assert_eq!(
+        1,
+        task_list
+            .tasks
+            .iter()
+            .filter(|t| t.priority == Priority::High)
+            .count()
+    );
+
     Ok(())
 }
