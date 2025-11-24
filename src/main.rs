@@ -374,8 +374,8 @@ fn test_priority() -> Result<(), TodoError> {
         execute_command(command, &mut task_list)?;
     }
 
-    let _ = task_list.set_priority(2, Priority::Medium);
-    let _ = task_list.set_priority(3, Priority::High);
+    task_list.set_priority(2, Priority::Medium)?;
+    task_list.set_priority(3, Priority::High)?;
 
     assert_eq!(
         1,
