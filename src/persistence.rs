@@ -12,8 +12,8 @@ pub fn load_todo_list(path: &str) -> TodoList {
 }
 
 pub fn save_todo_list(path: &str, list: &TodoList) -> Result<(), TodoError> {
-    let json = serde_json::to_string_pretty(list).map_err(|_| TodoError::SaveError)?;
-    std::fs::write(path, json).map_err(|_| TodoError::SaveError)?;
+    let json = serde_json::to_string_pretty(list).map_err(|e| TodoError::SaveError(e.into()))?;
+    std::fs::write(path, json).map_err(TodoError::SaveError)?;
     Ok(())
 }
 

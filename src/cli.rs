@@ -53,7 +53,7 @@ pub enum TodoError {
     #[error("task id must be a positive integer")]
     InvalidId(#[from] std::num::ParseIntError),
     #[error("failed to save todo list")]
-    SaveError,
+    SaveError(#[source] std::io::Error),
     #[error("unknown priority")]
     PriorityError,
 }
