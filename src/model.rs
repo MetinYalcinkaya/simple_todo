@@ -89,6 +89,7 @@ impl TodoList {
 }
 
 #[derive(Clone, Copy, Default, Deserialize, Serialize, Debug, PartialEq, ValueEnum)]
+#[value(rename_all = "lower")]
 pub enum Priority {
     #[default]
     Low,
@@ -102,24 +103,6 @@ impl std::fmt::Display for Priority {
             Priority::Low => write!(f, "(L)"),
             Priority::Medium => write!(f, "(M)"),
             Priority::High => write!(f, "(H)"),
-        }
-    }
-}
-
-impl std::str::FromStr for Priority {
-    type Err = TodoError;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if s.eq_ignore_ascii_case("low") || s.eq_ignore_ascii_case("l") {
-            Ok(Priority::Low)
-        } else if s.eq_ignore_ascii_case("medium")
-            || s.eq_ignore_ascii_case("med")
-            || s.eq_ignore_ascii_case("m")
-        {
-            Ok(Priority::Medium)
-        } else if s.eq_ignore_ascii_case("high") || s.eq_ignore_ascii_case("h") {
-            Ok(Priority::High)
-        } else {
-            Err(TodoError::PriorityError)
         }
     }
 }

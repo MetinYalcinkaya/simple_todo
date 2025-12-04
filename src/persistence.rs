@@ -20,7 +20,7 @@ pub fn save_todo_list(path: &str, list: &TodoList) -> Result<(), TodoError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::cli::{execute_command, parse_command};
+    use crate::cli::{Command, execute_command};
 
     #[test]
     fn test_load_todo() {
@@ -30,8 +30,9 @@ mod tests {
 
     #[test]
     fn test_save_todo() -> Result<(), TodoError> {
-        let args: Vec<String> = vec![String::from("add"), String::from("helle there")];
-        let cmd = parse_command(args)?;
+        let cmd = Command::Add {
+            text: String::from("hello there"),
+        };
         let mut task_list: TodoList = Default::default();
         let path = "tests/data/save_test.json";
         execute_command(cmd, &mut task_list)?;

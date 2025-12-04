@@ -114,59 +114,18 @@ pub fn execute_command(cmd: Command, todo_list: &mut TodoList) -> Result<(), Tod
     }
 }
 
-pub fn parse_command(args: Vec<String>) -> Result<Command, TodoError> {
-    let mut args_iter = args.into_iter();
-    let sub = args_iter.next().ok_or(TodoError::UnknownCommand)?;
-
-    match sub.as_str() {
-        "add" => {
-            // TODO: check for quotation marks?
-            let text = args_iter.next().ok_or(TodoError::MissingArgument)?;
-            Ok(Command::Add { text })
-        }
-        "list" => Ok(Command::List),
-        "list-done" => Ok(Command::ListDone),
-        "list-todo" => Ok(Command::ListTodo),
-        "list-prio" => {
-            let priority: Priority = args_iter.next().ok_or(TodoError::PriorityError)?.parse()?;
-            Ok(Command::ListByPriority { priority })
-        }
-        "done" => {
-            let id: u32 = args_iter
-                .next()
-                .ok_or(TodoError::MissingArgument)?
-                .parse()?;
-            Ok(Command::Done { id })
-        }
-        "set-prio" | "set-priority" => {
-            let id: u32 = args_iter.next().ok_or(TodoError::InvalidId)?.parse()?;
-            let priority: Priority = args_iter.next().ok_or(TodoError::PriorityError)?.parse()?;
-            Ok(Command::SetPriority { id, priority })
-        }
-        _ => Err(TodoError::UnknownCommand),
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn test_cmd_parsing() -> Result<(), TodoError> {
-        let args: Vec<String> = vec![String::from("add"), String::from("hello there")];
-        let expected = Command::Add {
-            text: "hello there".to_string(),
-        };
-        assert_eq!(expected, parse_command(args)?);
-        Ok(())
-    }
-
-    #[test]
     fn test_add() -> Result<(), TodoError> {
-        let args1: Vec<String> = vec![String::from("add"), String::from("hello there")];
-        let args2: Vec<String> = vec![String::from("add"), String::from("hello there")];
-        let cmd1 = parse_command(args1)?;
-        let cmd2 = parse_command(args2)?;
+        let cmd1 = Command::Add {
+            text: String::from("hello there"),
+        };
+        let cmd2 = Command::Add {
+            text: String::from("hello there"),
+        };
         let mut task_list: TodoList = Default::default();
         execute_command(cmd1, &mut task_list)?;
         execute_command(cmd2, &mut task_list)?;
@@ -176,8 +135,9 @@ mod tests {
 
     #[test]
     fn test_mark_done() -> Result<(), TodoError> {
-        let args: Vec<String> = vec![String::from("add"), String::from("hello there")];
-        let cmd = parse_command(args)?;
+        let cmd = Command::Add {
+            text: String::from("hello there"),
+        };
         let mut task_list: TodoList = Default::default();
         execute_command(cmd, &mut task_list)?;
         let res = task_list.mark_done(1)?;
@@ -188,10 +148,12 @@ mod tests {
 
     #[test]
     fn test_print_todo_and_done() -> Result<(), TodoError> {
-        let args1: Vec<String> = vec![String::from("add"), String::from("hello there")];
-        let args2: Vec<String> = vec![String::from("add"), String::from("goodbye there")];
-        let cmd1 = parse_command(args1)?;
-        let cmd2 = parse_command(args2)?;
+        let cmd1 = Command::Add {
+            text: String::from("hello there"),
+        };
+        let cmd2 = Command::Add {
+            text: String::from("goodbye there"),
+        };
         let mut task_list: TodoList = Default::default();
         execute_command(cmd1, &mut task_list)?;
         execute_command(cmd2, &mut task_list)?;
