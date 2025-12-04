@@ -1,5 +1,6 @@
 use crate::model::{Priority, TodoList};
 use clap::{Parser, Subcommand};
+use thiserror::Error;
 
 #[derive(Parser)]
 #[command(name = "todo")]
@@ -41,32 +42,25 @@ pub enum Command {
     },
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum TodoError {
+    #[error("invalid command")]
     UnknownCommand,
+    #[error("invalid arguments")]
     MissingArgument,
+    #[error("task with that id was not found")]
     TaskNotFound,
+    #[error("task id must be a positive integer")]
     InvalidId,
+    #[error("failed to save todo list")]
     SaveError,
+    #[error("unknown priority")]
     PriorityError,
 }
 
 impl From<std::num::ParseIntError> for TodoError {
     fn from(_: std::num::ParseIntError) -> Self {
         TodoError::InvalidId
-    }
-}
-
-impl std::fmt::Display for TodoError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            TodoError::UnknownCommand => write!(f, "invalid command"),
-            TodoError::MissingArgument => write!(f, "invalid arguments"),
-            TodoError::TaskNotFound => write!(f, "task with that id was not found"),
-            TodoError::InvalidId => write!(f, "task id must be a positive integer"),
-            TodoError::SaveError => write!(f, "failed to save todo list"),
-            TodoError::PriorityError => write!(f, "unknown priority"),
-        }
     }
 }
 
