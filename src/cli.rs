@@ -1,15 +1,44 @@
 use crate::model::{Priority, TodoList};
+use clap::{Parser, Subcommand};
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Parser)]
+#[command(name = "todo")]
+#[command(about = "a simple cli todo manager")]
+pub struct Cli {
+    #[command(subcommand)]
+    pub command: Command,
+}
+
+#[derive(Subcommand, Debug, PartialEq, Clone)]
 pub enum Command {
-    Add { text: String },
+    /// adds a new task
+    Add {
+        /// contents of the task
+        text: String,
+    },
+    /// lists all tasks
     List,
+    /// lists tasks you've completed
     ListDone,
+    /// lists tasks that need to be completed
     ListTodo,
-    ListByPriority { priority: Priority },
-    Done { id: u32 },
-    SetPriority { id: u32, priority: Priority },
-    Help,
+    /// lists tasks by given priority
+    ListByPriority {
+        /// priority level [low|med|high]
+        priority: Priority,
+    },
+    /// mark task as done
+    Done {
+        /// task id
+        id: u32,
+    },
+    /// set priority of a task
+    SetPriority {
+        /// task id
+        id: u32,
+        /// priority level [low|med|high]
+        priority: Priority,
+    },
 }
 
 #[derive(Debug)]
@@ -82,12 +111,6 @@ pub fn execute_command(cmd: Command, todo_list: &mut TodoList) -> Result<(), Tod
             println!("Set task {} to {} priority", task.id, task.priority);
             Ok(())
         }
-        Command::Help => {
-            println!(
-                "Available commands: add, list, list-done, list-todo, list-prio, done, set-prio, help"
-            );
-            Ok(())
-        }
     }
 }
 
@@ -115,12 +138,11 @@ pub fn parse_command(args: Vec<String>) -> Result<Command, TodoError> {
                 .parse()?;
             Ok(Command::Done { id })
         }
-        "set-prio" => {
+        "set-prio" | "set-priority" => {
             let id: u32 = args_iter.next().ok_or(TodoError::InvalidId)?.parse()?;
             let priority: Priority = args_iter.next().ok_or(TodoError::PriorityError)?.parse()?;
             Ok(Command::SetPriority { id, priority })
         }
-        "help" => Ok(Command::Help),
         _ => Err(TodoError::UnknownCommand),
     }
 }

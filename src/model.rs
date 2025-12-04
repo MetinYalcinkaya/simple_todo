@@ -1,4 +1,5 @@
 use crate::cli::TodoError;
+use clap::ValueEnum;
 use serde::{Deserialize, Serialize};
 
 #[derive(Default, Clone, Deserialize, Serialize)]
@@ -87,7 +88,7 @@ impl TodoList {
     }
 }
 
-#[derive(Clone, Copy, Default, Deserialize, Serialize, Debug, PartialEq)]
+#[derive(Clone, Copy, Default, Deserialize, Serialize, Debug, PartialEq, ValueEnum)]
 pub enum Priority {
     #[default]
     Low,
