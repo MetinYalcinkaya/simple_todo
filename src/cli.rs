@@ -51,17 +51,11 @@ pub enum TodoError {
     #[error("task with that id was not found")]
     TaskNotFound,
     #[error("task id must be a positive integer")]
-    InvalidId,
+    InvalidId(#[from] std::num::ParseIntError),
     #[error("failed to save todo list")]
     SaveError,
     #[error("unknown priority")]
     PriorityError,
-}
-
-impl From<std::num::ParseIntError> for TodoError {
-    fn from(_: std::num::ParseIntError) -> Self {
-        TodoError::InvalidId
-    }
 }
 
 pub fn execute_command(cmd: Command, todo_list: &mut TodoList) -> Result<(), TodoError> {
